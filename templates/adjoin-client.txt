@@ -3,7 +3,11 @@
 ## Cluster Configuration File ##
 ################################
 
-[cluster PBSPro-ad]
+
+[noderef adnode]
+SourceClusterName = $ActiveDirectoryClusterName
+
+[cluster PBSPro-ActiveDirectory]
 FormLayout = selectionpanel
 Category = Schedulers
 
@@ -19,7 +23,7 @@ Autoscale = $Autoscale
     
         [[[configuration]]]
 	adjoin.ad_domain = $ad_domain 
-	adjoin.ad_server = $ad_server
+	adjoin.ad_server = ${adnode.instance.PrivateIp}
 	adjoin.ad_admin = $ad_admin
 	adjoin.ad_password = $ad_password
         
@@ -43,17 +47,6 @@ Autoscale = $Autoscale
         [[[input-endpoint ganglia]]]
         PrivatePort = 8652
         PublicPort = 8652
-
-    [[node viznode]]
-    MachineType = $MasterMachineType
-    ImageName = "MicrosoftWindowsDesktop:Windows-10:rs5-pron:latest"
-    
-        [[[configuration]]]
-
-        [[[cluster-init cyclecloud-adjoin:adwindows:1.0.0]]]
-
-        [[[network-interface eth0]]]
-        AssociatePublicIpAddress = $UsePublicNetwork
 
 
     [[nodearray execute]]
@@ -212,26 +205,29 @@ Order = 40
     [[parameters AD Settings]]
     Order = 10 
 
+        [[[parameter ActiveDirectoryClusterName]]]
+        Label = ActiveDirectory
+        Description = AD to use for authentication 
+        Config.Plugin = pico.form.QueryDropdown
+        Config.Query = select ClusterName as Name from Cloud.Node where cluster().IsTemplate isnt true && Configuration.role=?="activedirectory"
+        Config.SetDefault = false
+        Required = true
+
         [[[parameter ad_domain]]]
         Label = Active Directory Domain
         Description = The Active Directory Domain name.
         DefaultValue = MyDomain.local
         Required = True
 
-        [[[parameter ad_server]]]
-        Label = Active Directory server
-        Description = The Active Directory server name.
-        DefaultValue = adnode
-        Required = True
-
         [[[parameter ad_admin]]]
         Label = AD User
         Description = User with rights to join computer to the domain.
-        DefaultValue = hpcadmin
+        DefaultValue = cyclecloud 
         Required = True
 
         [[[parameter ad_password]]]
         Label = AD password
+        ParameterType = Password
         Description = Password for user with rights to join computer to the domain.
         DefaultValue = "mypassword@1234"
         Required = True

@@ -1,0 +1,120 @@
+
+################################
+## Cluster Configuration File ##
+################################
+
+[cluster ActiveDirectory]
+FormLayout = selectionpanel
+Category = Infrastructure 
+IconUrl = https://pulse.microsoft.com/uploads/prod/2019/12/ms_loves_linux.png 
+
+Autoscale = false 
+
+    [[node defaults]]
+    UsePublicNetwork = $UsePublicNetwork
+    Credentials = $Credentials    
+    SubnetId = $SubnetId
+    Region = $Region
+    KeyPairLocation = ~/.ssh/cyclecloud.pem
+    
+    [[node adnode]]
+    ImageName = $ADImageName
+    Password = $Password
+    MachineType = $ADMachineType
+    MaxCoreCount = 100 
+    InstallJetpack = true
+
+    Interruptible = false 
+    AdditionalClusterInitSpecs = $ADInitSpecs
+
+
+        [[[configuration]]]
+        cyclecloud.discoverable = true
+        role = activedirectory
+        adjoin.activedirectory = true
+	adjoin.password = $Password
+	adjoin.domain = MyDomain.local
+	adjoin.user = hpcuser
+
+        [[[cluster-init cyclecloud-adjoin:adnode]]]
+
+        [[[network-interface eth0]]]
+        AssociatePublicIpAddress = $ADPublic
+
+
+[parameters Required Settings]
+Order = 10
+
+    [[parameters Virtual Machines ]]
+    Description = "Configure which VM types to use based on the requirements of your application."
+    Order = 20
+
+        [[[parameter Region]]]
+        Label = Region
+        Description = Deployment Location
+        ParameterType = Cloud.Region
+        DefaultValue = eastus
+
+        [[[parameter ADMachineType]]]
+        Label = Node ADVM Type
+        Description = The VM type for scheduler master and shared filer.
+        ParameterType = Cloud.MachineType
+        DefaultValue = Standard_D8_v3
+
+
+    [[parameters Networking]]
+    Order = 40
+
+        [[[parameter SubnetId]]]
+        Label = Subnet ID
+        Description = Subnet Resource Path (ResourceGroup/VirtualNetwork/Subnet)
+        ParameterType = Azure.Subnet
+        Required = True
+
+
+[parameters Advanced Settings]
+Order = 20
+
+    [[parameters Azure Settings]]
+    Order = 10 
+
+        [[[parameter Credentials]]]
+        Description = The credentials for the cloud provider
+        ParameterType = Cloud.Credentials
+
+    [[parameters Software]]
+    Description = "Specify the scheduling software, and base OS installed on all nodes, and optionally the cluster-init and chef versions from your Locker."
+    Order = 10
+
+        [[[parameter ADImageName]]]
+        Label = AD Base OS
+        ParameterType = Cloud.Image
+        DefaultValue = cycle.image.win2016 
+    
+        [[[parameter ADInitSpecs]]]
+        Label = Execute Cluster-Init
+        DefaultValue = =undefined
+        Description = Cluster init specs to apply to execute nodes
+        ParameterType = Cloud.ClusterInitSpecs
+
+        [[[parameter Password]]]
+        Label = Password
+        ParameterType = Password
+        Description = The password for the built-in local user on all nodes for direct access.
+        Conditions.Required := startswith("cycle.image.win", ExecuteImageName)
+        Conditions.Excluded := !startswith("cycle.image.win", ExecuteImageName)
+
+    [[parameters Advanced Networking]]
+    Description = Advanced networking settings
+
+        [[[parameter UsePublicNetwork]]]
+        Label = Public Head Node
+        DefaultValue = true
+        ParameterType = Boolean
+        Config.Label = Access master node from the Internet
+
+        [[[parameter ADPublic]]]
+        Label = Public AD
+        DefaultValue = true
+        ParameterType = Boolean
+        Config.Label = Access AD node from the Internet
